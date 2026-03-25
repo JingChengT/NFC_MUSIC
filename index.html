@@ -15,7 +15,6 @@
             --progress-bg: #444;
         }
 
-        /* 浅色模式 */
         [theme="light"] {
             --bg-color: #f5f5f5;
             --card-color: rgba(255, 255, 255, 0.8);
@@ -44,26 +43,19 @@
             width: 340px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.2);
             border: 1px solid rgba(255,255,255,0.1);
-            transition: all 0.4s ease;
             position: relative;
         }
 
-        /* 模式切换按钮 */
         .theme-toggle {
             position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 40px;
-            height: 40px;
+            top: 20px; right: 20px;
+            width: 40px; height: 40px;
             border-radius: 50%;
             background: var(--accent-color);
-            color: white;
-            border: none;
-            font-size: 18px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            color: white; border: none;
+            font-size: 18px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 20;
         }
 
         .info h2 { margin-bottom: 8px; font-size: 1.4rem; letter-spacing: 1px; }
@@ -80,18 +72,11 @@
             position: absolute;
             top: -20px; right: 20px;
             width: 15px; height: 100px;
-            background: #aaa;
-            border-radius: 5px;
+            background: #aaa; border-radius: 5px;
             transform-origin: top center;
             transform: rotate(-35deg);
-            transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 10;
-            box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
-        }
-
-        .needle::after {
-            content: ''; position: absolute; top: -5px; left: -5px;
-            width: 25px; height: 25px; background: #444; border-radius: 50%;
         }
 
         .record {
@@ -102,27 +87,7 @@
             display: flex; justify-content: center; align-items: center;
             animation: rotate 10s linear infinite;
             animation-play-state: paused;
-            box-shadow: 0 0 20 rgba(0,0,0,0.4);
             position: relative;
-        }
-
-        .record::before {
-            content: '';
-            position: absolute;
-            width: 90%;
-            height: 90%;
-            border-radius: 50%;
-            border: 2px dashed #555;
-            opacity: 0.3;
-        }
-        .record::after {
-            content: '';
-            position: absolute;
-            width: 15px;
-            height: 15px;
-            background: #121212;
-            border-radius: 50%;
-            z-index: 5;
         }
 
         .cover {
@@ -143,33 +108,24 @@
             to { transform: rotate(360deg); }
         }
 
-        .progress-container {
-            width: 85%;
-            margin: 0 auto 25px;
-        }
+        .progress-container { width: 85%; margin: 0 auto 25px; }
         .progress-bar {
             -webkit-appearance: none;
-            width: 100%;
-            height: 6px;
+            width: 100%; height: 6px;
             border-radius: 10px;
             background: var(--progress-bg);
-            outline: none;
-            cursor: pointer;
+            outline: none; cursor: pointer;
         }
         .progress-bar::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 14px;
-            height: 14px;
+            width: 14px; height: 14px;
             border-radius: 50%;
             background: var(--accent-color);
         }
 
         .time {
-            display: flex;
-            justify-content: space-between;
-            color: var(--sub-color);
-            font-size: 0.75rem;
-            margin-top: 5px;
+            display: flex; justify-content: space-between;
+            color: var(--sub-color); font-size: 0.75rem; margin-top: 5px;
         }
 
         .btn {
@@ -178,19 +134,18 @@
             padding: 15px 50px; border-radius: 50px;
             font-size: 1.1rem; font-weight: bold;
             cursor: pointer; transition: 0.3s;
+            min-width: 200px;
         }
-        .btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
 
 <div class="player-card" id="main-card">
-    <!-- 模式切换按钮 -->
-    <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">🌙</button>
+    <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">☀️</button>
 
     <div class="info">
-        <h2 id="title">正在为您播放</h2>
-        <p id="artist">触碰开启</p>
+        <h2 id="title">BAN</h2>
+        <p id="artist">櫻坂46</p>
     </div>
 
     <div class="record-container">
@@ -208,8 +163,8 @@
         </div>
     </div>
 
-    <audio id="music" src="music.mp3" loop></audio>
-    <button class="btn" onclick="togglePlay()" id="btn-text">开启音乐</button>
+    <audio id="music" src="./music.mp3" preload="auto" loop></audio>
+    <button class="btn" onclick="togglePlay()" id="btn-text">正在尝试预载...</button>
 </div>
 
 <script>
@@ -221,20 +176,36 @@
     const totalTimeEl = document.getElementById('total');
     const themeBtn = document.getElementById('theme-btn');
 
-    // ========== 自定义歌曲信息 ==========
-    const songName = "Ban";
-    const subText = "樱坂46";
+    // 1. 自动更新总时长（元数据就绪时）
+    audio.addEventListener('loadedmetadata', () => {
+        totalTimeEl.innerText = formatTime(audio.duration);
+        if (btn.innerText === "正在尝试预载...") {
+            btn.innerText = "开启音乐";
+        }
+    });
 
-    document.getElementById('title').innerText = songName;
-    document.getElementById('artist').innerText = subText;
+    // 2. 处理网络缓冲状态
+    audio.addEventListener('waiting', () => {
+        if (!audio.paused) btn.innerText = "缓冲中...";
+    });
 
-    // 播放/暂停
+    audio.addEventListener('canplay', () => {
+        if (!audio.paused) btn.innerText = "暂停";
+    });
+
+    // 3. 核心播放函数
     function togglePlay() {
         if (audio.paused) {
+            // 给用户即时反馈，防止连击
+            btn.innerText = "正在唤醒...";
+            
             audio.play().then(() => {
                 card.classList.add('playing');
                 btn.innerText = "暂停";
                 btn.style.background = "#555";
+            }).catch(e => {
+                console.log("Play failed:", e);
+                btn.innerText = "点击重试";
             });
         } else {
             audio.pause();
@@ -244,7 +215,7 @@
         }
     }
 
-    // 主题切换（暗黑 ↔ 浅色）
+    // 4. 主题切换
     function toggleTheme() {
         const current = document.body.getAttribute('theme') || 'dark';
         if (current === 'dark') {
@@ -256,15 +227,13 @@
         }
     }
 
-    // 更新进度条
+    // 5. 进度条联动
     audio.addEventListener('timeupdate', () => {
-        const percent = (audio.currentTime / audio.duration) * 100;
-        progress.value = percent;
-        currentTimeEl.innerText = formatTime(audio.currentTime);
-    });
-
-    audio.addEventListener('loadedmetadata', () => {
-        totalTimeEl.innerText = formatTime(audio.duration);
+        if (!isNaN(audio.duration)) {
+            const percent = (audio.currentTime / audio.duration) * 100;
+            progress.value = percent;
+            currentTimeEl.innerText = formatTime(audio.currentTime);
+        }
     });
 
     progress.addEventListener('input', () => {
@@ -278,6 +247,14 @@
         const sec = Math.floor(seconds % 60);
         return `${min}:${sec < 10 ? '0' + sec : sec}`;
     }
+
+    // 6. 移动端唤醒：用户第一次摸屏幕时就开始下载音频
+    document.addEventListener('touchstart', () => {
+        if (audio.readyState === 0) {
+            audio.load();
+            console.log("Audio load triggered by touch");
+        }
+    }, { once: true });
 </script>
 
 </body>
